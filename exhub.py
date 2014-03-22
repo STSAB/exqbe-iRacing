@@ -4,7 +4,7 @@ import serial
 class Exhub:
 
     def __init__(self, port):
-        self.serial = serial.Serial(port, baudrate=38400)
+        self.serial = serial.Serial(port, baudrate=19200)
 
     def send(self, address, value):
         self.serial.write('{} {}\n'.format(address, value))
