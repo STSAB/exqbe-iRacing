@@ -1,0 +1,3 @@
+[submodule "python-iracing-api"]
+	path = python-iracing-api
+	url = git@github.com:STSAB/python-iracing-api.git
