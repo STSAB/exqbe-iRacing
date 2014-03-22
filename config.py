@@ -17,6 +17,7 @@ class Config:
             raise ValueError('Address {} not in configuration'.format(address))
         elif len(definitions) > 1:
             raise ValueError('Address {} appears multiple times in configuration'.format(address))
+        return definitions[0]
 
     def apply_formulas(self, address, value):
         definition = self.get_definition(address)
