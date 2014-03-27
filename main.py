@@ -13,7 +13,7 @@ def main():
     # Setup logging
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.DEBUG)
 
-    local_hub = exhub.Exhub('/dev/cu.usbserial-A603B312')
+    local_hub = exhub.Exhub('/dev/cu.usbserial-A603AVX6')
     configuration = config.Config('config.bin')
 
     # iRacing memory mapped files only works on Windows systems. In case of a non-Windows system we can simulate
@@ -42,6 +42,8 @@ def main():
             except serial.SerialException, e:
                 logging.error('Unrecoverable serial exception, {}'.format(e))
                 raise
+            except config.ConfigError, e:
+                logging.error('Configuration error: {}'.format(e.message))
             except KeyError, e:
                 logging.error('Unknown sensor name: {}'.format(e.message))
             except Exception, e:

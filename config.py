@@ -1,22 +1,24 @@
 import exproto_pb2 as proto
 
 
-class Config:
+class ConfigError(Exception):
+    pass
+
+
+class Config(object):
 
     def __init__(self, config_file):
         self.configuration = proto.Configuration()
         self.configuration.ParseFromString(open(config_file, 'rb').read())
-
-        # Map sensor id to
 
     def get_definition(self, address):
         # Find the correct sensor definition
         definitions = filter(lambda x: x.HasField('sensor_address') and x.sensor_address == address,
                              self.configuration.sensor_definitions)
         if len(definitions) == 0:
-            raise ValueError('Address {} not in configuration'.format(address))
+            raise ConfigError('Address {} not in configuration'.format(address))
         elif len(definitions) > 1:
-            raise ValueError('Address {} appears multiple times in configuration'.format(address))
+            raise ConfigError('Address {} appears multiple times in configuration'.format(address))
         return definitions[0]
 
     def apply_formulas(self, address, value):
