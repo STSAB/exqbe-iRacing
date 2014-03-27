@@ -25,10 +25,18 @@ def main():
         mmap_item = mmap.mmap(mmap_f.fileno(), api.MEMMAPFILESIZE)
     client_api = api.API(mmap_item)
 
+    logging.debug('Initializing...')
+    for key in client_api.keys():
+        value = client_api[key]
+
+    # Flush hub to avoid operating on large amounts of cached data which would overwhelm the hub
+    local_hub.flush()
+    local_hub.send_ack()
+
     try:
+        logging.debug('Wait for request')
         while True:
             try:
-                logging.debug('Wait for request')
                 # Wait for a request from the Exhub
                 address = local_hub.blocking_read()
                 # Fetch iRacing value
@@ -37,7 +45,7 @@ def main():
                 # Apply reverse calculation
                 ad_reading = int(configuration.apply_formulas(address, iracing_value))
                 # Reply to Exhub
-                logging.debug('Sending sensor {} value {}'.format(iracing_key, ad_reading))
+                logging.debug('Sending [sensor={}, value={}, adc={}'.format(iracing_key, iracing_value, ad_reading))
                 local_hub.send(address, ad_reading)
             except serial.SerialException, e:
                 logging.error('Unrecoverable serial exception, {}'.format(e))
@@ -48,6 +56,8 @@ def main():
                 logging.error('Unknown sensor name: {}'.format(e.message))
             except Exception, e:
                 logging.error('Unknown error, {}'.format(sys.exc_info()[0]))
+            finally:
+                local_hub.send_ack()
 
     except KeyboardInterrupt:
         pass

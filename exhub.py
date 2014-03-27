@@ -1,13 +1,16 @@
 import serial
-
+import logging
 
 class Exhub:
 
     def __init__(self, port):
-        self.serial = serial.Serial(port, baudrate=19200)
+        self.serial = serial.Serial(port, baudrate=38400)
 
     def send(self, address, value):
-        self.serial.write('{} {}\n'.format(address, value))
+        self.serial.write('{} {}'.format(address, value))
+
+    def send_ack(self):
+        self.serial.write('\n')
 
     def blocking_read(self):
         """
@@ -17,4 +20,8 @@ class Exhub:
         form. If the exhub wants to read a sensor with an id 10 it will send '\0x0A\n', not '10\n\. This will change.
         """
         res = self.serial.readline()
+        logging.debug('exhub wrote \'{}\''.format(res))
         return ord(res[0])
+
+    def flush(self):
+        self.serial.flushInput()
