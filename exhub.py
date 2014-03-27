@@ -20,7 +20,6 @@ class Exhub:
         form. If the exhub wants to read a sensor with an id 10 it will send '\0x0A\n', not '10\n\. This will change.
         """
         res = self.serial.readline()
-        logging.debug('exhub wrote \'{}\''.format(res))
         return ord(res[0])
 
     def flush(self):
