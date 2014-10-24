@@ -10,7 +10,7 @@ MessageTypes = {
     sink.TYPE_SPEED: (0x7D1, 0.1),
     sink.TYPE_WATER_TEMP: (0x7D2, 0.1),
     sink.TYPE_OIL_TEMP: (0x7D3, 0.1),
-    sink.TYPE_OIL_PRESSURE: (0x7D4, 10),
+    sink.TYPE_OIL_PRESSURE: (0x7D4, 0.01),
     sink.TYPE_VOLTAGE: (0x7D5, 0.01),
     sink.TYPE_MANIFOLD_PRESSURE: (0x7D6, 1),
     sink.TYPE_FUEL_LEVEL: (0x7D7, 1),
