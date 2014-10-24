@@ -16,7 +16,7 @@ MessageTypes = {
     sink.TYPE_FUEL_LEVEL: (0x7D7, 1),
     sink.TYPE_LONG_ACCEL: (0x7D8, 0.01),
     sink.TYPE_LAT_ACCEL: (0x7D9, 0.01),
-    sink.TYPE_THROTTLE: (0x7DA, 0.1),
+    sink.TYPE_THROTTLE: (0x7DA, 1),
     sink.TYPE_BRAKE: (0x7DB, 0.1)
 }
 
