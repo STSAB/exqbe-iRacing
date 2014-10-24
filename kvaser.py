@@ -12,7 +12,7 @@ MessageTypes = {
     sink.TYPE_OIL_TEMP: (0x7D3, 0.1),
     sink.TYPE_OIL_PRESSURE: (0x7D4, 0.01),
     sink.TYPE_VOLTAGE: (0x7D5, 0.01),
-    sink.TYPE_MANIFOLD_PRESSURE: (0x7D6, 1),
+    sink.TYPE_MANIFOLD_PRESSURE: (0x7D6, 0.1),
     sink.TYPE_FUEL_LEVEL: (0x7D7, 1),
     sink.TYPE_LONG_ACCEL: (0x7D8, 0.01),
     sink.TYPE_LAT_ACCEL: (0x7D9, 0.01),
