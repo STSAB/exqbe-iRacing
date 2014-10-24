@@ -6,6 +6,11 @@ class Exhub:
     def __init__(self, port):
         self.serial = serial.Serial(port, baudrate=38400)
 
+    def reset(self):
+        # Flush hub to avoid operating on large amounts of cached data which would overwhelm the hub
+        self.flush()
+        self.send_ack()
+
     def send(self, address, value):
         self.serial.write('{} {}'.format(address, value))
 

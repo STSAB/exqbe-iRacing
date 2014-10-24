@@ -1,66 +1,73 @@
-import exhub
-import config
+import kvaser
 from api import api
 
 import logging
 import platform
 import os
 import mmap
-import serial
-import sys
+import sink
+import time
+import sched
+
+Sensors = Sensors = {
+    sink.TYPE_RPM: {'name': 'RPM', 'frequency': 10},
+    sink.TYPE_SPEED: {'name': 'Speed', 'frequency': 5},
+    sink.TYPE_WATER_TEMP: {'name': 'WaterTemp', 'frequency': 1},
+    sink.TYPE_OIL_TEMP: {'name': 'OilTemp', 'frequency': 1},
+    sink.TYPE_OIL_PRESSURE: {'name': 'OilPress', 'frequency': 5},
+    sink.TYPE_VOLTAGE: {'name': 'Voltage', 'frequency': 1},
+    sink.TYPE_MANIFOLD_PRESSURE: {'name': 'ManifoldPress', 'frequency': 5},
+    sink.TYPE_LONG_ACCEL: {'name': 'LongAccel', 'frequency': 2},
+    sink.TYPE_LAT_ACCEL: {'name': 'LatAccel', 'frequency': 2},
+    sink.TYPE_THROTTLE: {'name': 'Throttle', 'frequency': 5},
+    sink.TYPE_BRAKE: {'name': 'Brake', 'frequency': 5}
+}
+
+
+class iRacingBridge(object):
+    def __init__(self):
+        # iRacing memory mapped files only works on Windows systems. In case of a non-Windows system we can simulate
+        # the behavior by mapping against a memory dump instead.
+        mmap_item = None
+        if platform.system() != 'Wiows':
+            mmap_file = os.path.join('api', 'tests', 'memorydump.dmp')
+            mmap_f = open(mmap_file, 'r+b')
+            mmap_item = mmap.mmap(mmap_f.fileno(), api.MEMMAPFILESIZE)
+        self.client_api = api.API(mmap_item)
+        logging.debug('Initializing...')
+        for key in self.client_api.keys():
+            value = self.client_api[key]
+
+        self.scheduler = sched.scheduler(time.time, time.sleep)
+        self.sensor_sink = kvaser.Kvaser()
+
+    def run(self):
+        # Setup sensor reading schedule.
+        for sensor_type in Sensors.keys():
+            self.scheduler.enter(0, 1, self.read_sensor, argument=(sensor_type,))
+
+        logging.debug('Entering poll loop')
+        self.sensor_sink.reset()
+        try:
+            self.scheduler.run()
+        except KeyboardInterrupt:
+            pass
+
+    def read_sensor(self, sensor_type):
+        sensor = Sensors[sensor_type]
+        # Reschedule
+        self.scheduler.enter(1.0 / sensor['frequency'], 1, self.read_sensor, argument=(sensor_type,))
+        # Read value
+        value = self.client_api[sensor['name']]
+        logging.debug('Sending {}: {}'.format(sensor['name'], value))
+        self.sensor_sink.sink(sensor_type, value)
+
 
 def main():
     # Setup logging
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.DEBUG)
-
-    local_hub = exhub.Exhub('/dev/cu.usbserial-A603AVX6')
-    configuration = config.Config('config.bin')
-
-    # iRacing memory mapped files only works on Windows systems. In case of a non-Windows system we can simulate
-    # the behavior by mapping against a memory dump instead.
-    mmap_item = None
-    if platform.system() != 'Windows':
-        mmap_file = os.path.join('api', 'tests', 'memorydump.dmp')
-        mmap_f = open(mmap_file, 'r+b')
-        mmap_item = mmap.mmap(mmap_f.fileno(), api.MEMMAPFILESIZE)
-    client_api = api.API(mmap_item)
-
-    logging.debug('Initializing...')
-    for key in client_api.keys():
-        value = client_api[key]
-
-    # Flush hub to avoid operating on large amounts of cached data which would overwhelm the hub
-    local_hub.flush()
-    local_hub.send_ack()
-
-    try:
-        logging.debug('Wait for request')
-        while True:
-            try:
-                # Wait for a request from the Exhub
-                address = local_hub.blocking_read()
-                # Fetch iRacing value
-                iracing_key = configuration.get_definition(address).sensor_name
-                iracing_value = client_api[iracing_key]
-                # Apply reverse calculation
-                ad_reading = int(configuration.apply_formulas(address, iracing_value))
-                # Reply to Exhub
-                logging.debug('Sending [sensor={}, value={}, adc={}'.format(iracing_key, iracing_value, ad_reading))
-                local_hub.send(address, ad_reading)
-            except serial.SerialException, e:
-                logging.error('Unrecoverable serial exception, {}'.format(e))
-                raise
-            except config.ConfigError, e:
-                logging.error('Configuration error: {}'.format(e.message))
-            except KeyError, e:
-                logging.error('Unknown sensor name: {}'.format(e.message))
-            except Exception, e:
-                logging.error('Unknown error, {}'.format(sys.exc_info()[0]))
-            finally:
-                local_hub.send_ack()
-
-    except KeyboardInterrupt:
-        pass
+    bridge = iRacingBridge()
+    bridge.run()
 
 if __name__ == '__main__':
     main()
