@@ -29,7 +29,7 @@ class iRacingBridge(object):
         # iRacing memory mapped files only works on Windows systems. In case of a non-Windows system we can simulate
         # the behavior by mapping against a memory dump instead.
         mmap_item = None
-        if platform.system() != 'Wiows':
+        if platform.system() != 'Windows':
             mmap_file = os.path.join('api', 'tests', 'memorydump.dmp')
             mmap_f = open(mmap_file, 'r+b')
             mmap_item = mmap.mmap(mmap_f.fileno(), api.MEMMAPFILESIZE)
@@ -43,7 +43,7 @@ class iRacingBridge(object):
 
     def run(self):
         # Setup sensor reading schedule.
-        self.scheduler.enter(0, 1, self.read_sensors)
+        self.scheduler.enter(0, 1, self.read_sensors, ())
 
         logging.debug('Entering poll loop')
         self.sensor_sink.reset()
@@ -52,14 +52,16 @@ class iRacingBridge(object):
         except KeyboardInterrupt:
             pass
 
-    def read_sensor(self):
+    def read_sensors(self):
         # Reschedule
-        self.scheduler.enter(0.1, 1, self.read_sensors)
+        self.scheduler.enter(0.1, 1, self.read_sensors, ())
 
         values = {}
-        for key, sensor in Sensors:
+        for key, sensor in Sensors.items():
             values[key] = self.client_api[sensor['name']]
-            logging.debug('Sending {}: {}'.format(key, values['key']))
+            if values[key] is None:
+                values[key] = 0
+            logging.debug('Sending {}: {}'.format(key, values[key]))
 
         self.sensor_sink.sink(values)
 

@@ -3,32 +3,9 @@ import sys
 import struct
 from ctypes import *
 
-INDEX_ADDRESS = 0
-INDEX_MULTIPLIER = 1
-
-MessageTypes = {
-    sink.TYPE_RPM: (0x7D0, 1.0),
-    sink.TYPE_SPEED: (0x7D1, 0.1),
-    sink.TYPE_WATER_TEMP: (0x7D2, 0.1),
-    sink.TYPE_OIL_TEMP: (0x7D3, 0.1),
-    sink.TYPE_OIL_PRESSURE: (0x7D4, 0.01),
-    sink.TYPE_VOLTAGE: (0x7D5, 0.01),
-    sink.TYPE_MANIFOLD_PRESSURE: (0x7D6, 0.1),
-    sink.TYPE_FUEL_LEVEL: (0x7D7, 1),
-    sink.TYPE_LONG_ACCEL: (0x7D8, 0.01),
-    sink.TYPE_LAT_ACCEL: (0x7D9, 0.01),
-    sink.TYPE_THROTTLE: (0x7DA, 1),
-    sink.TYPE_BRAKE: (0x7DB, 0.1)
-}
-
-# CANlib
-MsgDataType = c_uint8 * 8
-
-
 # Errors
 class KvaserError(Exception):
     pass
-
 
 class Kvaser(object):
     def __init__(self):
@@ -47,9 +24,47 @@ class Kvaser(object):
     def reset(self):
         pass
 
+    def _transmit(self, address, data):
+        ctypes_data = (c_ubyte * 8).from_buffer_copy(data)
+        res = self.dll.canWrite(
+            c_int(self.handle),
+            c_int(address),
+            pointer(ctypes_data),
+            c_int(8),
+            c_int(0))
+
     def sink(self, telemetry):
-        msg = struct.pack('hhh\0\0',
+        msg = struct.pack('hhhh',
                           telemetry[sink.TYPE_RPM],
-                          telemetry[sink.TYPE_THROTTLE] / 0.01,
-                          telemetry[sink.TYPE_MANIFOLD_PRESSURE] / 0.1)
-        res = self.dll.canWrite(c_int(self.handle), c_int(0x520), pointer(msg), c_int(8), c_int(0))
+                          telemetry[sink.TYPE_THROTTLE] / 0.001,
+                          telemetry[sink.TYPE_MANIFOLD_PRESSURE] / 0.1,
+                          0)
+        self._transmit(0x520, msg)
+
+        msg = struct.pack('hhhh',
+                          0,
+                          0,
+                          0,
+                          telemetry[sink.TYPE_SPEED] / 0.1)
+        self._transmit(0x522, msg)
+
+        msg = struct.pack('hhhh',
+                          0,
+                          0,
+                          0,
+                          telemetry[sink.TYPE_BRAKE] / 0.0001)
+        self._transmit(0x524, msg)
+
+        msg = struct.pack('hhhh',
+                          telemetry[sink.TYPE_VOLTAGE] / 0.01,
+                          telemetry[sink.TYPE_OIL_PRESSURE] / 0.1,
+                          telemetry[sink.TYPE_OIL_TEMP] / 0.1,
+                          telemetry[sink.TYPE_WATER_TEMP] / 0.1)
+        self._transmit(0x530, msg)
+
+        msg = struct.pack('hhhh',
+                          0,
+                          telemetry[sink.TYPE_LONG_ACCEL] / 0.1,
+                          telemetry[sink.TYPE_LAT_ACCEL] / 0.1,
+                          0)
+        self._transmit(0x531, msg)
