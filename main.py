@@ -9,7 +9,7 @@ import sink
 import time
 import sched
 
-Sensors = Sensors = {
+Sensors = {
     sink.TYPE_RPM: {'name': 'RPM', 'frequency': 10},
     sink.TYPE_SPEED: {'name': 'Speed', 'frequency': 5},
     sink.TYPE_WATER_TEMP: {'name': 'WaterTemp', 'frequency': 1},
@@ -43,8 +43,7 @@ class iRacingBridge(object):
 
     def run(self):
         # Setup sensor reading schedule.
-        for sensor_type in Sensors.keys():
-            self.scheduler.enter(0, 1, self.read_sensor, argument=(sensor_type,))
+        self.scheduler.enter(0, 1, self.read_sensors)
 
         logging.debug('Entering poll loop')
         self.sensor_sink.reset()
@@ -53,14 +52,16 @@ class iRacingBridge(object):
         except KeyboardInterrupt:
             pass
 
-    def read_sensor(self, sensor_type):
-        sensor = Sensors[sensor_type]
+    def read_sensor(self):
         # Reschedule
-        self.scheduler.enter(1.0 / sensor['frequency'], 1, self.read_sensor, argument=(sensor_type,))
-        # Read value
-        value = self.client_api[sensor['name']]
-        logging.debug('Sending {}: {}'.format(sensor['name'], value))
-        self.sensor_sink.sink(sensor_type, value)
+        self.scheduler.enter(0.1, 1, self.read_sensors)
+
+        values = {}
+        for key, sensor in Sensors:
+            values[key] = self.client_api[sensor['name']]
+            logging.debug('Sending {}: {}'.format(key, values['key']))
+
+        self.sensor_sink.sink(values)
 
 
 def main():

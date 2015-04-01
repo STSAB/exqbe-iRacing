@@ -15,6 +15,6 @@ TYPE_BRAKE = 11
 
 class Sink(object):
     @abstractmethod
-    def sink(self, key, value):
+    def sink(self, telemetry):
         pass
 

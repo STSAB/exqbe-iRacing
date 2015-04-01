@@ -1,5 +1,6 @@
 import sink
 import sys
+import struct
 from ctypes import *
 
 INDEX_ADDRESS = 0
@@ -46,14 +47,9 @@ class Kvaser(object):
     def reset(self):
         pass
 
-    def sink(self, key, value):
-        if key in MessageTypes:
-            message_type = MessageTypes[key]
-            output = int(value * message_type[INDEX_MULTIPLIER])
-
-            msg = MsgDataType()
-            msg[0] = output & 0xFF
-            msg[1] = (output >> 8) & 0xFF
-            res = self.dll.canWrite(c_int(self.handle), c_int(message_type[INDEX_ADDRESS]), pointer(msg), c_int(2), c_int(0))
-            if res < 0:
-                raise KvaserError('Error sending message, {}'.format(res))
+    def sink(self, telemetry):
+        msg = struct.pack('hhh\0\0',
+                          telemetry[sink.TYPE_RPM],
+                          telemetry[sink.TYPE_THROTTLE] / 0.01,
+                          telemetry[sink.TYPE_MANIFOLD_PRESSURE] / 0.1)
+        res = self.dll.canWrite(c_int(self.handle), c_int(0x520), pointer(msg), c_int(8), c_int(0))
